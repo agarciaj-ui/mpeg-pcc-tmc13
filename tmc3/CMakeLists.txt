@@ -20,6 +20,17 @@ set(VERSION_FILE ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
 set(VERSION_FILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in)
 set(VERSION_CACHE_FILE ${CMAKE_CURRENT_BINARY_DIR}/version.cache)
 find_package(Git)
+# add_custom_target(
+#   genversion
+#   COMMAND ${CMAKE_COMMAND} -D OUTPUT=${VERSION_FILE}
+#                            -D TEMPLATE=${VERSION_FILE_IN}
+#                            -D VERSION_FALLBACK=${VERSION_FALLBACK}
+#                            -D VERSION_EXTRA=${VERSION_EXTRA}
+#                            -D VERSION_CACHE_FILE=${VERSION_CACHE_FILE}
+#                            -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
+#                            -P ${CMAKE_SOURCE_DIR}/scripts/genversion.cmake
+#   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+# )
 add_custom_target(
   genversion
   COMMAND ${CMAKE_COMMAND} -D OUTPUT=${VERSION_FILE}
@@ -28,8 +39,8 @@ add_custom_target(
                            -D VERSION_EXTRA=${VERSION_EXTRA}
                            -D VERSION_CACHE_FILE=${VERSION_CACHE_FILE}
                            -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
-                           -P ${CMAKE_SOURCE_DIR}/scripts/genversion.cmake
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                           -P ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/genversion.cmake
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 add_custom_command(
@@ -155,22 +166,57 @@ source_group (inc FILES ${PROJECT_INC_FILES})
 source_group (input FILES ${PROJECT_IN_FILES})
 source_group (cpp FILES ${PROJECT_CPP_FILES})
 
-include_directories(
+# --- Original ----------------------------------------------------
+# include_directories(
+#   "${PROJECT_BINARY_DIR}/tmc3"
+#   "${PROJECT_SOURCE_DIR}"
+#   "${CMAKE_CURRENT_SOURCE_DIR}"
+#   "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/nanoflann"
+#   "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/program-options-lite"
+# )
+# 
+# add_executable (tmc3
+#   ${PROJECT_CPP_FILES}
+#   ${PROJECT_INC_FILES}
+#   ${PROJECT_IN_FILES}
+#   ${VERSION_FILE}
+# )
+# add_dependencies(tmc3 genversion)
+# 
+# add_executable (ply-merge EXCLUDE_FROM_ALL
+#   "../tools/ply-merge.cpp"
+#   "misc.cpp"
+#   "ply.cpp"
+#   "../dependencies/program-options-lite/program_options_lite.cpp"
+#   ${VERSION_FILE}
+# )
+# add_dependencies(ply-merge genversion)
+# 
+# install (TARGETS tmc3 DESTINATION bin)
+
+
+
+# --- Lib generation ----------------------------------------------
+list(REMOVE_ITEM PROJECT_CPP_FILES "TMC3.cpp")
+add_library(tmc3_lib STATIC
+  ${PROJECT_CPP_FILES}
+  ${PROJECT_INC_FILES}
+  ${PROJECT_IN_FILES}
+  ${VERSION_FILE}
+)
+add_dependencies(tmc3_lib genversion)
+target_include_directories(tmc3_lib PUBLIC
   "${PROJECT_BINARY_DIR}/tmc3"
   "${PROJECT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/nanoflann"
   "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/program-options-lite"
 )
+# target_compile_features(tmc3_lib PUBLIC cxx_std_14) # Add compiler flags specific to the library
 
-add_executable (tmc3
-  ${PROJECT_CPP_FILES}
-  ${PROJECT_INC_FILES}
-  ${PROJECT_IN_FILES}
-  ${VERSION_FILE}
-)
-add_dependencies(tmc3 genversion)
-
+# Executable
+add_executable (tmc3 "TMC3.cpp")
+target_link_libraries(tmc3 PRIVATE tmc3_lib)
 add_executable (ply-merge EXCLUDE_FROM_ALL
   "../tools/ply-merge.cpp"
   "misc.cpp"
@@ -180,4 +226,6 @@ add_executable (ply-merge EXCLUDE_FROM_ALL
 )
 add_dependencies(ply-merge genversion)
 
+# Installation
 install (TARGETS tmc3 DESTINATION bin)
+install (TARGETS tmc3_lib DESTINATION lib)
