@@ -110,6 +110,42 @@ public:
       perFrameMovingStatus[i] = checkMovingStatus(motionMatrix[i], transVec[i]);
     }
   }
+  // PATCH
+  void appendDynamicMotion(const std::vector<float>& motion_data_14, double qs)
+  {
+    const int scaleFactor = 65536;
+    std::vector<int> mat_int(9);
+    std::vector<double> mat_double(9);
+    Vec3<int> trans;
+    std::pair<int, int> thresh;
+
+    auto it = motion_data_14.begin();
+    
+    // Parse 3x3 Rotation
+    for (int j = 0; j < 9; j++) {
+      mat_double[j] = *it;
+      if (j % 3 == j / 3) // Diagonal elements
+        mat_int[j] = std::round((*(it++) - 1) * scaleFactor) + 65536;
+      else
+        mat_int[j] = std::round((*(it++)) * scaleFactor);
+    }
+    
+    // Parse 1x3 Translation (scaled by geometry scale 'qs')
+    for (int j = 0; j < 3; j++) 
+      trans[j] = std::round((*(it++)) * qs);
+      
+    // Parse Thresholds
+    thresh.first = std::round((*(it++)) * qs);
+    thresh.second = std::round((*(it++)) * qs);
+
+    // Append to internal buffers so frameCounter indexing works!
+    motionMatrix.push_back(mat_int);
+    motionMatrix_double.push_back(mat_double);
+    transVec.push_back(trans);
+    threshVec.push_back(thresh);
+    perFrameMovingStatus.push_back(checkMovingStatus(mat_int, trans));
+    numFrames++; // Increase the total frame count
+  }
 
   bool checkMovingStatus(std::vector<int> matrix, Vec3<int> vec){
     const int frameDistance = 1;

@@ -195,6 +195,7 @@ public:
   static void fixupParameterSets(EncoderParams* params);
   void setInterForCurrPic(bool x) { _codeCurrFrameAsInter = x; }
   void setMotionVectorFileName(std::string s) { motionVectorFileName = s; }
+  void appendDynamicMotionMatrix(const std::vector<float>& motion_data_14, double qs); // PATCH
   static void deriveMotionParams(EncoderParams* params);
   void setRefTimesList()
   {

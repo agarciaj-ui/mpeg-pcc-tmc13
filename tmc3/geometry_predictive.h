@@ -495,6 +495,11 @@ public:
   {
     motionParams.parseFile(fileName, qs);
   }
+  // PATCH
+  void appendDynamicMotion(const std::vector<float>& motion_data_14, double qs)
+  {
+    motionParams.appendDynamicMotion(motion_data_14, qs);
+  }
   void updateFrame(const GeometryParameterSet& gps)
   {
     motionParams.AdvanceFrame();

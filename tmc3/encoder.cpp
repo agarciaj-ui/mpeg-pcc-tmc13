@@ -836,6 +836,15 @@ PCCTMC3Encoder3::fixupParameterSets(EncoderParams* params)
   }
 }
 
+//---------------------------------------------------------------------------
+// motion transformation injection PATCH
+void PCCTMC3Encoder3::appendDynamicMotionMatrix(const std::vector<float>& motion_data_14, double qs) {
+  // We must push to all active predictors!
+  _refFrameSph.appendDynamicMotion(motion_data_14, qs);
+  
+  // If bi-prediction is enabled, it needs it too
+  biPredEncodeParams._refFrameSph2.appendDynamicMotion(motion_data_14, qs);
+}
 
 //---------------------------------------------------------------------------
 // motion parameter derivation
@@ -1451,18 +1460,21 @@ PCCTMC3Encoder3::encodeGeometryBrick(
   gbh.footer.geom_num_points_minus1 = pointCloud.getPointCount() - 1;
 
   if ( _gps->predgeom_enabled_flag && gbh.interPredictionEnabledFlag && _gps->globalMotionEnabled) {
-    gbh.interFrameRefGmcFlag = _refFrameSph.getFrameMovingState();
-    if (gbh.biPredictionEnabledFlag)
-      gbh.interFrameRefGmcFlag2 = biPredEncodeParams._refFrameSph2.getFrameMovingState();
-    if (_gps->biPredictionEnabledFlag){
-      _refFrameSph.getMotionParamsMultiple(gbh.gm_thresh, gbh.gm_matrix, gbh.gm_trans,
-        biPredEncodeParams.currentFrameIndex, biPredEncodeParams.refFrameIndex);
-      if (gbh.biPredictionEnabledFlag)
-        biPredEncodeParams._refFrameSph2.getMotionParamsMultiple(gbh.gm_thresh2, gbh.gm_matrix2, gbh.gm_trans2,
-        biPredEncodeParams.currentFrameIndex, biPredEncodeParams.refFrameIndex2);
-    }
-    else
-      _refFrameSph.getMotionParams(gbh.gm_thresh, gbh.gm_matrix, gbh.gm_trans);
+        gbh.interFrameRefGmcFlag = _refFrameSph.getFrameMovingState();
+        if (gbh.biPredictionEnabledFlag) {
+          gbh.interFrameRefGmcFlag2 = biPredEncodeParams._refFrameSph2.getFrameMovingState();
+        }
+        if (_gps->biPredictionEnabledFlag) {
+          _refFrameSph.getMotionParamsMultiple(gbh.gm_thresh, gbh.gm_matrix, gbh.gm_trans,
+            biPredEncodeParams.currentFrameIndex, biPredEncodeParams.refFrameIndex);
+          if (gbh.biPredictionEnabledFlag){
+            biPredEncodeParams._refFrameSph2.getMotionParamsMultiple(gbh.gm_thresh2, gbh.gm_matrix2, gbh.gm_trans2,
+            biPredEncodeParams.currentFrameIndex, biPredEncodeParams.refFrameIndex2);
+          }
+        }
+        else{
+          _refFrameSph.getMotionParams(gbh.gm_thresh, gbh.gm_matrix, gbh.gm_trans);
+        }
   }
 
   attrInterPredParams.frameDistance = 1;
